@@ -19,7 +19,7 @@ class PascalVOCDataset(Dataset):
         """
         self.split = split.upper()
 
-        assert self.split in {'TRAIN', 'TEST'}
+        assert self.split in {'TRAIN'}
 
         self.data_folder = data_folder
         self.keep_difficult = keep_difficult
