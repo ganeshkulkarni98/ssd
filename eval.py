@@ -7,9 +7,9 @@ from pprint import PrettyPrinter
 pp = PrettyPrinter()
 
 # Parameters
-data_folder = './'
+#data_folder = './'
 keep_difficult = True  # difficult ground truth objects must always be considered in mAP calculation, because these objects DO exist!
-batch_size = 64
+batch_size = 2
 workers = 4
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 checkpoint = './checkpoint_ssd300.pth.tar'
@@ -23,9 +23,11 @@ model = model.to(device)
 model.eval()
 
 # Load test data
-test_dataset = PascalVOCDataset(data_folder,
+create_data_lists('/content/data', '/content/data')
+
+test_dataset = PascalVOCDataset('/content/data',
                                 split='test',
-                                keep_difficult=keep_difficult)
+                                keep_difficult=keep_difficult)                              
 test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False,
                                           collate_fn=test_dataset.collate_fn, num_workers=workers, pin_memory=True)
 
