@@ -71,7 +71,7 @@ def main():
     train_dataset = PascalVOCDataset('/content/data',
                                      split='train',
                                      keep_difficult=keep_difficult)
-    print(train_dataset[0])                                 
+    #print(train_dataset[0])                                 
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True,
                                                collate_fn=train_dataset.collate_fn, num_workers=workers,
                                                pin_memory=True)  # note that we're passing the collate function here
@@ -81,7 +81,7 @@ def main():
     # The paper trains for 120,000 iterations with a batch size of 32, decays after 80,000 and 100,000 iterations
     #epochs = iterations // (len(train_dataset) // 2)
 
-    epochs = 1
+    epochs = 10
     decay_lr_at = [it // (len(train_dataset) // 2) for it in decay_lr_at]
 
     # Epochs
