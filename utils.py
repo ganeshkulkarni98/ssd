@@ -134,10 +134,10 @@ def create_data_lists(data_folder_path, output_folder):
       if len(objects) == 0:
           continue      
       n_objects += len(objects)
-      train_objects.append(objects)
+      test_objects.append(objects)
 
     for image in glob.glob(os.path.join(data_folder_path,'images') + '/*'):
-      train_images.append(image)
+      test_images.append(image)
       
     assert len(test_objects) == len(test_images)
 
@@ -705,9 +705,22 @@ def save_checkpoint(epoch, model, optimizer):
     state = {'epoch': epoch,
              'model': model,
              'optimizer': optimizer}
-    filename = 'checkpoint_ssd300.pth.tar'
+    filename = 'last_checkpoint.pth'
     torch.save(state, filename)
 
+def save_best_checkpoint(epoch, model, optimizer):
+    """
+    Save best model checkpoint.
+
+    :param epoch: epoch number
+    :param model: model
+    :param optimizer: optimizer
+    """
+    state = {'epoch': epoch,
+             'model': model,
+             'optimizer': optimizer}
+    filename = 'best_checkpoint.pth'
+    torch.save(state, filename)
 
 class AverageMeter(object):
     """
