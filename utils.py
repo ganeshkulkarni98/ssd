@@ -109,25 +109,36 @@ def create_data_lists(data_folder_path, output_folder):
     print('\nThere are %d training images containing a total of %d objects. Files have been saved to %s.' % (
         len(train_images), n_objects, os.path.abspath(output_folder)))
 
-'''
+
     # Test data
     test_images = list()
     test_objects = list()
     n_objects = 0
 
-    # Find IDs of images in the test data
-    with open(os.path.join(voc07_path, 'ImageSets/Main/test.txt')) as f:
-        ids = f.read().splitlines()
+#     # Find IDs of images in the test data
+#     with open(os.path.join(voc07_path, 'ImageSets/Main/test.txt')) as f:
+#         ids = f.read().splitlines()
 
-    for id in ids:
-        # Parse annotation's XML file
-        objects = parse_annotation(os.path.join(voc07_path, 'Annotations', id + '.xml'))
-        if len(objects) == 0:
-            continue
-        test_objects.append(objects)
-        n_objects += len(objects)
-        test_images.append(os.path.join(voc07_path, 'JPEGImages', id + '.jpg'))
+#     for id in ids:
+#         # Parse annotation's XML file
+#         objects = parse_annotation(os.path.join(voc07_path, 'Annotations', id + '.xml'))
+#         if len(objects) == 0:
+#             continue
+#         test_objects.append(objects)
+#         n_objects += len(objects)
+#         test_images.append(os.path.join(voc07_path, 'JPEGImages', id + '.jpg'))
+    lables_files = glob.glob1(os.path.join(data_folder_path,'Annotations'), '*.xml')
+    for label in lables_files:
+      label = os.path.join(data_folder_path,'Annotations', label)
+      objects = parse_annotation(label)
+      if len(objects) == 0:
+          continue      
+      n_objects += len(objects)
+      train_objects.append(objects)
 
+    for image in glob.glob(os.path.join(data_folder_path,'images') + '/*'):
+      train_images.append(image)
+      
     assert len(test_objects) == len(test_images)
 
     # Save to file
@@ -139,7 +150,6 @@ def create_data_lists(data_folder_path, output_folder):
     print('\nThere are %d test images containing a total of %d objects. Files have been saved to %s.' % (
         len(test_images), n_objects, os.path.abspath(output_folder)))
 
-'''
 
 def decimate(tensor, m):
     """
