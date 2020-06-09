@@ -16,8 +16,10 @@ keep_difficult = True  # use objects considered difficult to detect?
 
 # Model parameters
 # Not too many here since the SSD300 has a very specific structure
+
+label_map, rev_label_map, label_color_map = label_map_fn('/content/data/output.json')
+
 n_classes = len(label_map)  # number of different types of objects
-print(n_classes)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Learning parameters
@@ -40,7 +42,7 @@ def main():
     """
     Training.
     """
-    global start_epoch, label_map, epoch, checkpoint, decay_lr_at
+    global start_epoch, label_map, epoch, checkpoint, decay_lr_at, rev_label_map
 
     # Initialize model or load checkpoint
     if checkpoint is None:
@@ -106,7 +108,7 @@ def main():
     # The paper trains for 120,000 iterations with a batch size of 32, decays after 80,000 and 100,000 iterations
     #epochs = iterations // (len(train_dataset) // 2)
 
-    epochs = 10
+    epochs = 1
     decay_lr_at = [it // (len(train_dataset) // 2) for it in decay_lr_at]
 
     prev_mAP = 0.0
@@ -122,9 +124,10 @@ def main():
               model=model,
               criterion=criterion,
               optimizer=optimizer,
-              epoch=epoch)
+              epoch=epoch,
+              device=device)
 
-        _, mAP = evaluate(test_loader, model)
+        _, mAP = evaluate(test_loader, model, device)
 
         # Save checkpoint
         save_checkpoint(epoch, model, optimizer)
@@ -134,7 +137,7 @@ def main():
           prev_mAP = mAP
           save_best_checkpoint(epoch, model, optimizer)
 
-def train(train_loader, model, criterion, optimizer, epoch):
+def train(train_loader, model, criterion, optimizer, epoch, device):
     """
     One epoch's training.
 
@@ -193,7 +196,7 @@ def train(train_loader, model, criterion, optimizer, epoch):
                                                                   data_time=data_time, loss=losses))
     del predicted_locs, predicted_scores, images, boxes, labels  # free some memory since their histories may be stored
 
-def evaluate(test_loader, model):
+def evaluate(test_loader, model, device):
     """
     Evaluate.
 
@@ -240,7 +243,7 @@ def evaluate(test_loader, model):
             true_difficulties.extend(difficulties)
 
         # Calculate mAP
-        APs, mAP = calculate_mAP(det_boxes, det_labels, det_scores, true_boxes, true_labels, true_difficulties)
+        APs, mAP = calculate_mAP(det_boxes, det_labels, det_scores, true_boxes, true_labels, true_difficulties, label_map, rev_label_map, device)
 
     # Print AP for each class
     print('Average Precision for each class : ')
