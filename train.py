@@ -70,11 +70,24 @@ def main():
     criterion = MultiBoxLoss(priors_cxcy=model.priors_cxcy).to(device)
 
     # Load test data
-    create_data_lists('/content/data', '/content/data')
+    #create_data_lists('/content/data', '/content/data')
 
-    test_dataset = PascalVOCDataset('/content/data',
-                                    split='test',
-                                    keep_difficult=keep_difficult)                              
+    train_dataset = PascalVOCDataset('/content/data/images', '/content/data/output.json' , split = 'train' , keep_difficult=keep_difficult)
+    test_dataset = PascalVOCDataset('/content/data/images', '/content/data/output.json' , split = 'test' , keep_difficult=keep_difficult)
+
+    # half = int(len(train_dataset)/2)
+    # # split the dataset in train and test set
+    # torch.manual_seed(1)
+    # indices = torch.randperm(len(train_dataset)).tolist()
+
+    # #print(indices)
+    # train_dataset = torch.utils.data.Subset(train_dataset, indices[:-half])
+    # test_dataset = torch.utils.data.Subset(test_dataset, indices[-half:])
+
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True,
+                                               collate_fn=train_dataset.collate_fn, num_workers=workers,
+                                               pin_memory=True)  # note that we're passing the collate function here
+
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False,
                                               collate_fn=test_dataset.collate_fn, num_workers=workers, pin_memory=True)
 
@@ -82,13 +95,11 @@ def main():
 
     #create_data_lists('/content/data', '/content/data')
 
-    train_dataset = PascalVOCDataset('/content/data',
-                                     split='train',
-                                     keep_difficult=keep_difficult)
+    # train_dataset = PascalVOCDataset('/content/data',
+    #                                  split='train',
+    #                                  keep_difficult=keep_difficult)
     #print(train_dataset[0])                                 
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True,
-                                               collate_fn=train_dataset.collate_fn, num_workers=workers,
-                                               pin_memory=True)  # note that we're passing the collate function here
+
 
     # Calculate total number of epochs to train and the epochs to decay learning rate at (i.e. convert iterations to epochs)
     # To convert iterations to epochs, divide iterations by the number of iterations per epoch
