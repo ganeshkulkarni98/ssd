@@ -5,53 +5,24 @@ import torchvision
 from model import SSD300, VGGBase
 import numpy as np
 
-
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-# Load model checkpoint
-# checkpoint = 'checkpoint_ssd300.pth.tar'
-# checkpoint = torch.load(checkpoint)
-# start_epoch = checkpoint['epoch'] + 1
-# print('\nLoaded checkpoint from epoch %d.\n' % start_epoch)
-# model = checkpoint['model']
-# model = model.to(device)
-# model.eval()
-
-label_map, rev_label_map, label_color_map = label_map_fn('/content/data/output.json')
-
-n_classes = len(label_map)  # number of different types of objects
-
 def model_init(model_name):
   if model_name == 'SSD':
     '''
     As in the paper, we use a VGG-16 pretrained on the ImageNet task as the base network.
-    There's one available in PyTorch, see https://pytorch.org/docs/stable/torchvision/models.html#torchvision.models.vgg16
-    
+    There's one available in PyTorch, see https://pytorch.org/docs/stable/torchvision/models.html#torchvision.models.vgg16 
     '''
-    weight_file_path = torchvision.models.vgg16(pretrained=True).state_dict()
-    #weight_file_path = '/content/ssd/best_checkpoint.pth'
-    #weight_file_path = '/content/ssd/CP_epoch10.pth'
+    weight_file_path = '/content/ssd/vgg16-397923af.pth'
 
+  torch.load(weight_file_path)
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
   print('Loading model')
   model = SSD300(pretrained = False, n_classes=n_classes)
   print('Loading weight file')
-  VGGBase().load_pretrained_layers(weight_file_path = weight_file_path)
+  VGGBase().load_pretrained_layers(torch.load(weight_file_path))
   #model.load_state_dict(torch.load(weight_file_path, map_location=device))
   print('model initialized')
 
   return model, device
-
-model, device = model_init('SSD')
-model = model.to(device)
-model.eval()
-
-# Transforms
-resize = transforms.Resize((300, 300))
-to_tensor = transforms.ToTensor()
-normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                 std=[0.229, 0.224, 0.225])
-
 
 def detect(image_folder, min_score, max_overlap, top_k, suppress=None):
     """
@@ -64,6 +35,13 @@ def detect(image_folder, min_score, max_overlap, top_k, suppress=None):
     :param suppress: classes that you know for sure cannot be in the image or you do not want in the image, a list
     :return: annotated image, a PIL Image
     """
+    # Transforms
+    resize = transforms.Resize((300, 300))
+    to_tensor = transforms.ToTensor()
+    normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                    std=[0.229, 0.224, 0.225])
+
+
     images = list(sorted(os.listdir(image_folder)))
 
     annotated_images = []
@@ -100,8 +78,8 @@ def detect(image_folder, min_score, max_overlap, top_k, suppress=None):
       # If no objects found, the detected labels will be set to ['0.'], i.e. ['background'] in SSD300.detect_objects() in model.py
       if det_labels == ['background']:
           # Just return original image
-          #return image
-        annotated_images.append(np.array(image))
+          
+        annotated_images.append(np.array(image.cpu()))
         results.append([])
 
       else:      
@@ -109,28 +87,27 @@ def detect(image_folder, min_score, max_overlap, top_k, suppress=None):
         annotated_image = original_image
         draw = ImageDraw.Draw(annotated_image)
         font = ImageFont.load_default()
-        # Suppress specific classes, if needed
 
+        # Suppress specific classes, if needed
         for i in range(det_boxes.size(0)):
             objects = {}
-            objects['xy_top_left'] = det_boxes[i][0]
-            objects['xy_bot_right'] = det_boxes[i][1]
-            #objects['conf_level'] = det_scores[i][0]
+            objects['x_min'] = det_boxes[i][0]
+            objects['y_min'] = det_boxes[i][1]
+            objects['x_max'] = det_boxes[i][2]
+            objects['y_max'] = det_boxes[i][3]
+            objects['conf_level'] = det_scores[0][i]
             objects['label']= det_labels[i]
             if suppress is not None:
                 if det_labels[i] in suppress:
                     continue
 
             img_result.append(objects)
+
             # Boxes
             box_location = det_boxes[i].tolist()
             draw.rectangle(xy=box_location, outline=label_color_map[det_labels[i]])
             draw.rectangle(xy=[l + 1. for l in box_location], outline=label_color_map[
-                det_labels[i]])  # a second rectangle at an offset of 1 pixel to increase line thickness
-            # draw.rectangle(xy=[l + 2. for l in box_location], outline=label_color_map[
-            #     det_labels[i]])  # a third rectangle at an offset of 1 pixel to increase line thickness
-            # draw.rectangle(xy=[l + 3. for l in box_location], outline=label_color_map[
-            #     det_labels[i]])  # a fourth rectangle at an offset of 1 pixel to increase line thickness
+                det_labels[i]]) 
 
             # Text
             text_size = font.getsize(det_labels[i].upper())
@@ -150,10 +127,15 @@ def detect(image_folder, min_score, max_overlap, top_k, suppress=None):
 
 if __name__ == '__main__':
 
+    label_map, rev_label_map, label_color_map = label_map_fn('/content/data/output.json')
+
+    n_classes = len(label_map)  # number of different types of objects
+
+    model, device = model_init('SSD')
+    model = model.to(device)
+    model.eval()
+
     image_folder = '/content/data/images'
-    # original_image = Image.open(img_path, mode='r')
-    # original_image = original_image.convert('RGB')
-    annotated_images, results = detect(image_folder, min_score=0.2, max_overlap=0.5, top_k=200)
-    print(results)
-    # annotated_image = np.array(annotated_image)
-    print(annotated_images)
+
+    annotated_images, results = detect(image_folder, min_score=0.2, max_overlap=0.5, top_k=5)
+    print(annotated_images, results)
