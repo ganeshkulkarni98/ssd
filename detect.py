@@ -5,14 +5,36 @@ from PIL import Image, ImageDraw, ImageFont
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Load model checkpoint
-checkpoint = 'checkpoint_ssd300.pth.tar'
-checkpoint = torch.load(checkpoint)
-start_epoch = checkpoint['epoch'] + 1
-print('\nLoaded checkpoint from epoch %d.\n' % start_epoch)
-model = checkpoint['model']
-model = model.to(device)
-model.eval()
+# checkpoint = 'checkpoint_ssd300.pth.tar'
+# checkpoint = torch.load(checkpoint)
+# start_epoch = checkpoint['epoch'] + 1
+# print('\nLoaded checkpoint from epoch %d.\n' % start_epoch)
+# model = checkpoint['model']
+# model = model.to(device)
+# model.eval()
 
+def model_init(model_name):
+  if model_name == 'SSD':
+    '''
+    As in the paper, we use a VGG-16 pretrained on the ImageNet task as the base network.
+    There's one available in PyTorch, see https://pytorch.org/docs/stable/torchvision/models.html#torchvision.models.vgg16
+    
+    '''
+    weight_file_path = torchvision.models.vgg16(pretrained=True).state_dict()
+    #weight_file_path = '/content/ssd/best_checkpoint.pth'
+    #weight_file_path = '/content/ssd/CP_epoch10.pth'
+
+  device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+  print('Loading model')
+  model = SSD300(pretrained = False, n_classes=n_classes)
+  print('Loading weight file')
+  VGGBase().load_pretrained_layers(weight_file_path = weight_file_path)
+  #model.load_state_dict(torch.load(weight_file_path, map_location=device))
+  print('model initialized')
+
+  return model, device
+
+model, device = model_init('SSD')
 # Transforms
 resize = transforms.Resize((300, 300))
 to_tensor = transforms.ToTensor()
@@ -64,7 +86,7 @@ def detect(original_image, min_score, max_overlap, top_k, suppress=None):
     # Annotate
     annotated_image = original_image
     draw = ImageDraw.Draw(annotated_image)
-    font = ImageFont.truetype("./calibril.ttf", 15)
+    font = ImageFont.load_default()
 
     # Suppress specific classes, if needed
     for i in range(det_boxes.size(0)):
