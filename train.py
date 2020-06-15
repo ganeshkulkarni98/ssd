@@ -2,11 +2,13 @@ import time
 import torch.backends.cudnn as cudnn
 import torch.optim
 import torch.utils.data
-from model import SSD300, MultiBoxLoss
+from model import SSD300, MultiBoxLoss, VGGBase
 from datasets import PascalVOCDataset
 from utils import *
 from tqdm import tqdm
 from pprint import PrettyPrinter
+import torchvision
+
 # Good formatting when printing the APs for each class and mAP
 pp = PrettyPrinter()
 
@@ -47,7 +49,8 @@ def main():
     # Initialize model or load checkpoint
     if checkpoint is None:
         start_epoch = 0
-        model = SSD300(n_classes=n_classes)
+        #model = SSD300(n_classes=n_classes)
+        model, device = model_init('SSD')
         # Initialize the optimizer, with twice the default learning rate for biases, as in the original Caffe repo
         biases = list()
         not_biases = list()
@@ -136,6 +139,27 @@ def main():
         if prev_mAP < mAP:
           prev_mAP = mAP
           save_best_checkpoint(epoch, model, optimizer)
+
+        torch.save(model.state_dict(), f'CP_epoch{epoch + 1}.pth')
+
+def model_init(model_name):
+  if model_name == 'SSD':
+    '''
+    As in the paper, we use a VGG-16 pretrained on the ImageNet task as the base network.
+    There's one available in PyTorch, see https://pytorch.org/docs/stable/torchvision/models.html#torchvision.models.vgg16
+    
+    '''
+    weight_file_path = torchvision.models.vgg16(pretrained=True).state_dict()
+
+  device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+  print('Loading model')
+  model = SSD300(pretrained = False, n_classes=n_classes)
+  print('Loading weight file')
+  VGGBase().load_pretrained_layers(weight_file_path = weight_file_path)
+  print('model initialized')
+
+  return model, device
+
 
 def train(train_loader, model, criterion, optimizer, epoch, device):
     """
