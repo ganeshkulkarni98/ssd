@@ -8,7 +8,7 @@ import glob
 
 img_formats = ['.bmp', '.jpg', '.jpeg', '.png', '.tif']
 
-class PascalVOCDataset(Dataset):
+class COCODataset(Dataset):
     """
     A PyTorch Dataset class to be used in a PyTorch DataLoader to create batches.
     """
@@ -22,8 +22,6 @@ class PascalVOCDataset(Dataset):
         self.split = split
         self.split = split.upper()
 
-        #assert self.split in {'TRAIN'}
-
         self.image_folder_path = image_folder_path
         self.json_file_path = json_file_path
         self.keep_difficult = keep_difficult
@@ -33,26 +31,8 @@ class PascalVOCDataset(Dataset):
         self.anno = json.load(open(self.json_file_path))
         self.annotation = self.anno["annotations"]
 
-        # Read data files
-        # self.image_folder = os.path.join(self.data_folder, 'images')
-        # self.images = []
-        # for formats in img_formats:
-        #     formats = "*" + formats
-        #     image_ids = glob.glob1(images_folder,formats)
-        #     for image_id in image_ids :
-        #       self.images.append(os.path.join(images_folder, image_id))
-
-        # with open(os.path.join(data_folder, self.split + '_images.json'), 'r') as j:
-        #     self.images = json.load(j)
-        # with open(os.path.join(data_folder, self.split + '_objects.json'), 'r') as j:
-        #     self.objects = json.load(j)
-
-        #assert len(self.images) == len(self.objects)
-
     def __getitem__(self, i):
         # Read image
-        # image = Image.open(self.images[i], mode='r')
-        # image = image.convert('RGB')
         img_path = os.path.join(self.image_folder_path, self.imgs[i])
         image = Image.open(img_path).convert("RGB")
 
@@ -72,7 +52,6 @@ class PascalVOCDataset(Dataset):
 
 
         # Read objects in this image (bounding boxes, labels, difficulties)
-        #objects = self.objects[i]
         boxes = torch.FloatTensor(boxes)  # (n_objects, 4)
         labels = torch.LongTensor(labels)  # (n_objects)
         difficulties = torch.ByteTensor(difficulties)  # (n_objects)
