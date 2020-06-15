@@ -3,7 +3,7 @@ from utils import *
 import torch.nn.functional as F
 from math import sqrt
 from itertools import product as product
-import torchvision
+
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -13,7 +13,7 @@ class VGGBase(nn.Module):
     VGG base convolutions to produce lower-level feature maps.
     """
 
-    def __init__(self):
+    def __init__(self, pretrained=False):
         super(VGGBase, self).__init__()
 
         # Standard convolutional layers in VGG16
@@ -45,8 +45,13 @@ class VGGBase(nn.Module):
 
         self.conv7 = nn.Conv2d(1024, 1024, kernel_size=1)
 
-        # Load pretrained layers
-        self.load_pretrained_layers()
+        #self.weight_file_path = weight_file_path
+        if pretrained :
+          # Load pretrained layers
+          weight_file_path = torchvision.models.vgg16(pretrained=True).state_dict()
+          self.load_pretrained_layers(weight_file_path)
+
+        #self.weight_file_path = weight_file_path
 
     def forward(self, image):
         """
@@ -86,7 +91,7 @@ class VGGBase(nn.Module):
         # Lower-level feature maps
         return conv4_3_feats, conv7_feats
 
-    def load_pretrained_layers(self):
+    def load_pretrained_layers(self, weight_file_path):
         """
         As in the paper, we use a VGG-16 pretrained on the ImageNet task as the base network.
         There's one available in PyTorch, see https://pytorch.org/docs/stable/torchvision/models.html#torchvision.models.vgg16
@@ -99,7 +104,8 @@ class VGGBase(nn.Module):
         param_names = list(state_dict.keys())
 
         # Pretrained VGG base
-        pretrained_state_dict = torchvision.models.vgg16(pretrained=True).state_dict()
+        #pretrained_state_dict = torchvision.models.vgg16(pretrained=True).state_dict()
+        pretrained_state_dict = weight_file_path
         pretrained_param_names = list(pretrained_state_dict.keys())
 
         # Transfer conv. parameters from pretrained model to current model
@@ -325,12 +331,13 @@ class SSD300(nn.Module):
     The SSD300 network - encapsulates the base VGG network, auxiliary, and prediction convolutions.
     """
 
-    def __init__(self, n_classes):
+    def __init__(self, pretrained, n_classes):
         super(SSD300, self).__init__()
 
         self.n_classes = n_classes
+        self.pretrained = pretrained
+        self.base = VGGBase(pretrained)
 
-        self.base = VGGBase()
         self.aux_convs = AuxiliaryConvolutions()
         self.pred_convs = PredictionConvolutions(n_classes)
 
