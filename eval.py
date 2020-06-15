@@ -2,6 +2,8 @@ from utils import *
 from datasets import PascalVOCDataset
 from tqdm import tqdm
 from pprint import PrettyPrinter
+from model import SSD300, VGGBase
+import torchvision
 
 # Good formatting when printing the APs for each class and mAP
 pp = PrettyPrinter()
@@ -12,27 +14,52 @@ keep_difficult = True  # difficult ground truth objects must always be considere
 batch_size = 2
 workers = 4
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-checkpoint = './checkpoint_ssd300.pth.tar'
 
-# Load model checkpoint that is to be evaluated
-checkpoint = torch.load(checkpoint)
-model = checkpoint['model']
+label_map, rev_label_map, label_color_map = label_map_fn('/content/data/output.json')
+
+n_classes = len(label_map)  # number of different types of objects
+# checkpoint = './checkpoint_ssd300.pth.tar'
+
+# # Load model checkpoint that is to be evaluated
+# checkpoint = torch.load(checkpoint)
+# model = checkpoint['model']
+
+def model_init(model_name):
+  if model_name == 'SSD':
+    '''
+    As in the paper, we use a VGG-16 pretrained on the ImageNet task as the base network.
+    There's one available in PyTorch, see https://pytorch.org/docs/stable/torchvision/models.html#torchvision.models.vgg16
+    
+    '''
+    weight_file_path = torchvision.models.vgg16(pretrained=True).state_dict()
+    #weight_file_path = '/content/ssd/best_checkpoint.pth'
+    #weight_file_path = '/content/ssd/CP_epoch10.pth'
+
+  device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+  print('Loading model')
+  model = SSD300(pretrained = False, n_classes=n_classes)
+  print('Loading weight file')
+  VGGBase().load_pretrained_layers(weight_file_path = weight_file_path)
+  #model.load_state_dict(torch.load(weight_file_path, map_location=device))
+  print('model initialized')
+
+  return model, device
+
+model, device = model_init('SSD')
+
 model = model.to(device)
-
 # Switch to eval mode
 model.eval()
 
 # Load test data
-create_data_lists('/content/data', '/content/data')
+#create_data_lists('/content/data', '/content/data')
 
-test_dataset = PascalVOCDataset('/content/data',
-                                split='test',
-                                keep_difficult=keep_difficult)                              
+test_dataset = PascalVOCDataset('/content/data/images', '/content/data/output.json' , split = 'test' , keep_difficult=keep_difficult)                             
 test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False,
                                           collate_fn=test_dataset.collate_fn, num_workers=workers, pin_memory=True)
 
 
-def evaluate(test_loader, model):
+def evaluate(test_loader, model, device):
     """
     Evaluate.
 
@@ -50,7 +77,6 @@ def evaluate(test_loader, model):
     true_boxes = list()
     true_labels = list()
     true_difficulties = list()  # it is necessary to know which objects are 'difficult', see 'calculate_mAP' in utils.py
-
     with torch.no_grad():
         # Batches
         for i, (images, boxes, labels, difficulties) in enumerate(tqdm(test_loader, desc='Evaluating')):
@@ -78,7 +104,7 @@ def evaluate(test_loader, model):
             true_difficulties.extend(difficulties)
 
         # Calculate mAP
-        APs, mAP = calculate_mAP(det_boxes, det_labels, det_scores, true_boxes, true_labels, true_difficulties)
+        APs, mAP = calculate_mAP(det_boxes, det_labels, det_scores, true_boxes, true_labels, true_difficulties, label_map, rev_label_map, device)
 
     # Print AP for each class
     pp.pprint(APs)
@@ -87,4 +113,4 @@ def evaluate(test_loader, model):
 
 
 if __name__ == '__main__':
-    evaluate(test_loader, model)
+    evaluate(test_loader, model, device)
