@@ -11,15 +11,24 @@ def model_init(model_name):
     As in the paper, we use a VGG-16 pretrained on the ImageNet task as the base network.
     There's one available in PyTorch, see https://pytorch.org/docs/stable/torchvision/models.html#torchvision.models.vgg16 
     '''
-    weight_file_path = '/content/ssd/vgg16-397923af.pth'
+    #weight_file_path = '/content/ssd/vgg16-397923af.pth'
+    weight_file_path = '/content/ssd/CP_epoch1.pth'
 
-  torch.load(weight_file_path)
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
   print('Loading model')
   model = SSD300(pretrained = False, n_classes=n_classes)
-  print('Loading weight file')
-  VGGBase().load_pretrained_layers(torch.load(weight_file_path))
-  #model.load_state_dict(torch.load(weight_file_path, map_location=device))
+  
+  # load pretrained weight file (pretrained weight file), needs to do changes 
+  # while to load trained weight (current weight file) after traininng, load directly 
+
+  if list(torch.load(weight_file_path).keys())[0] == 'rescale_factors':
+    print("Loading trained weight file...")
+    model.load_state_dict(torch.load(weight_file_path, map_location=device))
+
+  else:
+    print("Loading pretrained weight file....")
+    model.base.load_pretrained_layers(torch.load(weight_file_path))
+
   print('model initialized')
 
   return model, device
