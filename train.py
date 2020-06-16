@@ -61,8 +61,6 @@ def main():
                                               collate_fn=test_dataset.collate_fn, num_workers=workers, pin_memory=True)
 
 
-    epochs = 2
-
     decay_lr_at = [it // (len(train_dataset) // 2) for it in decay_lr_at]
 
     prev_mAP = 0.0
@@ -99,15 +97,24 @@ def model_init(model_name):
     As in the paper, we use a VGG-16 pretrained on the ImageNet task as the base network.
     There's one available in PyTorch, see https://pytorch.org/docs/stable/torchvision/models.html#torchvision.models.vgg16 
     '''
-    weight_file_path = '/content/ssd/vgg16-397923af.pth'
+    #weight_file_path = '/content/ssd/vgg16-397923af.pth'
+    weight_file_path = '/content/ssd/CP_epoch1.pth'
 
-  torch.load(weight_file_path)
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
   print('Loading model')
   model = SSD300(pretrained = False, n_classes=n_classes)
-  print('Loading weight file')
-  VGGBase().load_pretrained_layers(torch.load(weight_file_path))
-  #model.load_state_dict(torch.load(weight_file_path, map_location=device))
+  
+  # load pretrained weight file (pretrained weight file), needs to do changes 
+  # while to load trained weight (current weight file) after traininng, load directly 
+
+  if list(torch.load(weight_file_path).keys())[0] == 'rescale_factors':
+    print("Loading trained weight file...")
+    model.load_state_dict(torch.load(weight_file_path, map_location=device))
+
+  else:
+    print("Loading pretrained weight file....")
+    model.base.load_pretrained_layers(torch.load(weight_file_path))
+
   print('model initialized')
 
   return model, device
@@ -260,6 +267,8 @@ if __name__ == '__main__':
     grad_clip = None  # clip if gradients are exploding, which may happen at larger batch sizes (sometimes at 32) - you will recognize it by a sorting error in the MuliBox loss calculation
 
     cudnn.benchmark = True
+
+    epochs = 26
 
     # run main function
     main()
