@@ -38,9 +38,6 @@ I'm using `PyTorch 0.4` in `Python 3.6`.
 
 **To build a model that can detect and localize specific objects in images.**
 
-<p align="center">
-<img src="./img/baseball.gif">
-</p>
 
 We will be implementing the [Single Shot Multibox Detector (SSD)](https://arxiv.org/abs/1512.02325), a popular, powerful, and especially nimble network for this task. The authors' original implementation can be found [here](https://github.com/weiliu89/caffe/tree/ssd).
 
