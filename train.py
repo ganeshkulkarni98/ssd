@@ -9,6 +9,9 @@ from tqdm import tqdm
 from pprint import PrettyPrinter
 import torchvision
 
+from coco_utils import get_coco_api_from_dataset
+from coco_eval import CocoEvaluator
+
 # Good formatting when printing the APs for each class and mAP
 pp = PrettyPrinter()
 
@@ -47,21 +50,16 @@ def main():
 
     criterion = MultiBoxLoss(priors_cxcy=model.priors_cxcy).to(device)
 
-    # Load train and test dataset
-
-    train_dataset = COCODataset('/content/data/images', '/content/data/output.json' , split = 'train' , keep_difficult=keep_difficult)
-    test_dataset = COCODataset('/content/data/images', '/content/data/output.json' , split = 'test' , keep_difficult=keep_difficult)
-
 
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True,
                                                collate_fn=train_dataset.collate_fn, num_workers=workers,
                                                pin_memory=True)  # note that we're passing the collate function here
 
-    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False,
-                                              collate_fn=test_dataset.collate_fn, num_workers=workers, pin_memory=True)
+    validation_loader = torch.utils.data.DataLoader(validation_dataset, batch_size=batch_size, shuffle=False,
+                                              collate_fn=validation_dataset.collate_fn, num_workers=workers, pin_memory=True)
 
 
-    decay_lr_at = [it // (len(train_dataset) // 2) for it in decay_lr_at]
+    decay_lr_at = [it // (len(train_dataset) // batch_size) for it in decay_lr_at]
 
     prev_mAP = 0.0
     # Epochs
@@ -79,7 +77,7 @@ def main():
               epoch=epoch,
               device=device)
 
-        _, mAP = evaluate(test_loader, model, device)
+        _, mAP = evaluate(validation_loader, model, device)
 
         # Save checkpoint
         save_checkpoint(epoch, model, optimizer)
@@ -97,8 +95,8 @@ def model_init(model_name):
     As in the paper, we use a VGG-16 pretrained on the ImageNet task as the base network.
     There's one available in PyTorch, see https://pytorch.org/docs/stable/torchvision/models.html#torchvision.models.vgg16 
     '''
-    #weight_file_path = '/content/ssd/vgg16-397923af.pth'
-    weight_file_path = '/content/ssd/CP_epoch1.pth'
+    weight_file_path = '/content/ssd/vgg16-397923af.pth'
+    #weight_file_path = '/content/ssd/CP_epoch1.pth'
 
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
   print('Loading model')
@@ -139,13 +137,18 @@ def train(train_loader, model, criterion, optimizer, epoch, device):
     start = time.time()
 
     # Batches
-    for i, (images, boxes, labels, _) in enumerate(train_loader):
+    for i, (images, targets) in enumerate(train_loader):
         data_time.update(time.time() - start)
 
         # Move to default device
-        images = images.to(device)  # (batch_size (N), 3, 300, 300)
-        boxes = [b.to(device) for b in boxes]
-        labels = [l.to(device) for l in labels]
+
+        images = list(img.to(device) for img in images)
+        images = torch.stack(images, dim=0)
+
+        targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
+
+        boxes = [t['boxes'] for t in targets]
+        labels = [t['labels'] for t in targets]
 
         # Forward prop.
         predicted_locs, predicted_scores = model(images)  # (N, 8732, 4), (N, 8732, n_classes)
@@ -186,8 +189,15 @@ def evaluate(test_loader, model, device):
     :param test_loader: DataLoader for test data
     :param model: model
     """
+    n_threads = torch.get_num_threads()
+    torch.set_num_threads(1)
+    cpu_device = torch.device("cpu")
     losses = AverageMeter()
     criterion = MultiBoxLoss(priors_cxcy=model.priors_cxcy).to(device)
+
+    coco = get_coco_api_from_dataset(test_loader.dataset)
+    iou_types = ['bbox']
+    coco_evaluator = CocoEvaluator(coco, iou_types)
 
     # Lists to store detected and true boxes, labels, scores
     det_boxes = list()
@@ -198,13 +208,25 @@ def evaluate(test_loader, model, device):
     true_difficulties = list()  # it is necessary to know which objects are 'difficult', see 'calculate_mAP' in utils.py
     with torch.no_grad():
         # Batches
-        for i, (images, boxes, labels, difficulties) in enumerate(tqdm(test_loader, desc='Evaluating')):
-            images = images.to(device)  # (N, 3, 300, 300)
+        for i, (images, targets) in enumerate(tqdm(test_loader, desc='Evaluating')):
+            # print(images, targets)
+            # images = images.to(device)  # (N, 3, 300, 300)
+            outputs = {}
+            outputs_boxes = []
+            outputs_labels =[]
+            outputs_scores = []
+            images = list(img.to(device) for img in images)
+            images = torch.stack(images, dim=0)
+            targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
 
-            # Store this batch's results for mAP calculation
-            boxes = [b.to(device) for b in boxes]
-            labels = [l.to(device) for l in labels]
-            difficulties = [d.to(device) for d in difficulties]
+            # # Store this batch's results for mAP calculation
+            boxes = [t['boxes'] for t in targets]
+            labels = [t['labels'] for t in targets]
+            difficulties = [t['difficulties'] for t in targets]
+            
+            # boxes = [b.to(device) for b in boxes]
+            # labels = [l.to(device) for l in labels]
+            # difficulties = [d.to(device) for d in difficulties]
 
             # Forward prop.
             predicted_locs, predicted_scores = model(images)
@@ -214,8 +236,22 @@ def evaluate(test_loader, model, device):
 
             # Detect objects in SSD output
             det_boxes_batch, det_labels_batch, det_scores_batch = model.detect_objects(predicted_locs, predicted_scores,
-                                                                                       min_score=0.01, max_overlap=0.45,
-                                                                                       top_k=200)
+                                                                                       min_score, max_overlap,
+                                                                                       top_k)
+
+            for i in range(len(det_boxes_batch)):
+              outputs_boxes += [j for j in det_boxes_batch[i]]
+              outputs_labels += [j for j in det_labels_batch[i]]
+              outputs_scores += [j for j in det_scores_batch[i]]
+            #print(outputs_boxes, len(outputs_boxes))
+            outputs['boxes'] = torch.stack(outputs_boxes, dim=0)
+            outputs['labels'] = torch.stack(outputs_labels, dim=0)
+            outputs['scores'] = torch.stack(outputs_scores, dim=0)
+            outputs = [outputs]
+            #outputs = [{k: v.to(cpu_device) for k, v in t.items()} for t in outputs]
+            res = {target["image_id"].item(): output for target, output in zip(targets, outputs)}
+            coco_evaluator.update(res)
+
             # Evaluation MUST be at min_score=0.01, max_overlap=0.45, top_k=200 for fair comparision with the paper's results and other repos
 
             det_boxes.extend(det_boxes_batch)
@@ -234,10 +270,18 @@ def evaluate(test_loader, model, device):
         # Calculate mAP
         APs, mAP = calculate_mAP(det_boxes, det_labels, det_scores, true_boxes, true_labels, true_difficulties, label_map, rev_label_map, device)
 
+    print('Total Average Validation Loss ({loss.avg:.3f})\t'.format(loss=losses) )
     # Print AP for each class
     pp.pprint(APs)
 
     print('\nMean Average Precision (mAP): %.3f' % mAP)
+
+    coco_evaluator.synchronize_between_processes()
+
+    # accumulate predictions from all images
+    coco_evaluator.accumulate()
+    coco_evaluator.summarize()
+    torch.set_num_threads(n_threads)   
 
     return APs, mAP
 
@@ -268,7 +312,18 @@ if __name__ == '__main__':
 
     cudnn.benchmark = True
 
-    epochs = 26
+    min_score=0.01
+    max_overlap=0.45
+    top_k=200
+
+    epochs = 10
+
+    # Load train and validation dataset (for sake of example i have used same but use different dataset)
+    # Load train image folder and corresponding coco json file to train dataset
+    # Load validation image folder and corresponding json file to validation dataset 
+
+    train_dataset = COCODataset('/content/data/images', '/content/data/output.json' , split = 'train' , keep_difficult=keep_difficult)
+    validation_dataset = COCODataset('/content/data/images', '/content/data/output.json' , split = 'test' , keep_difficult=keep_difficult)
 
     # run main function
     main()
