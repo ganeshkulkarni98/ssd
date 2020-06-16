@@ -35,10 +35,16 @@ class COCODataset(Dataset):
         # Read image
         img_path = os.path.join(self.image_folder_path, self.imgs[i])
         image = Image.open(img_path).convert("RGB")
-
+        height = image.height
+        width = image.width
+        
+        target = {}
         boxes = []
         labels = []
         difficulties = []
+        area = []
+        image_id = []
+        iscrowd = []
 
         for j in range (0,len(self.annotation)):
           if self.annotation[j]["image_id"] == i :
@@ -49,12 +55,15 @@ class COCODataset(Dataset):
             boxes.append(self.annotation[j]["bbox"])
             labels.append(self.annotation[j]["category_id"]+1)
             difficulties.append(self.annotation[j]["difficulties"])
-
+            area.append(self.annotation[j]["area"])
+            iscrowd.append(self.annotation[j]["iscrowd"])
 
         # Read objects in this image (bounding boxes, labels, difficulties)
         boxes = torch.FloatTensor(boxes)  # (n_objects, 4)
         labels = torch.LongTensor(labels)  # (n_objects)
         difficulties = torch.ByteTensor(difficulties)  # (n_objects)
+        area = torch.FloatTensor(area)
+        iscrowd = torch.ByteTensor(iscrowd)
 
         # Discard difficult objects, if desired
         if not self.keep_difficult:
@@ -64,8 +73,16 @@ class COCODataset(Dataset):
 
         # Apply transformations
         image, boxes, labels, difficulties = transform(image, boxes, labels, difficulties, split=self.split)
+        area = area * (300*300)/(height*width)
 
-        return image, boxes, labels, difficulties
+        target["boxes"] = boxes
+        target["labels"] = labels
+        target["image_id"] = torch.as_tensor(i, dtype=torch.int64)
+        target["area"] = area
+        target["iscrowd"] = iscrowd 
+        target["difficulties"] = difficulties
+
+        return image, target
 
     def __len__(self):
         return len(self.imgs)
@@ -82,17 +99,18 @@ class COCODataset(Dataset):
         :return: a tensor of images, lists of varying-size tensors of bounding boxes, labels, and difficulties
         """
 
-        images = list()
-        boxes = list()
-        labels = list()
-        difficulties = list()
+        # images = list()
+        # boxes = list()
+        # labels = list()
+        # difficulties = list()
 
-        for b in batch:
-            images.append(b[0])
-            boxes.append(b[1])
-            labels.append(b[2])
-            difficulties.append(b[3])
+        # for b in batch:
+        #     images.append(b[0])
+        #     boxes.append(b[1])
+        #     labels.append(b[2])
+        #     difficulties.append(b[3])
 
-        images = torch.stack(images, dim=0)
+        # images = torch.stack(images, dim=0)
 
-        return images, boxes, labels, difficulties  # tensor (N, 3, 300, 300), 3 lists of N tensors each
+        # return images, boxes, labels, difficulties  # tensor (N, 3, 300, 300), 3 lists of N tensors each
+        return tuple(zip(*batch))
