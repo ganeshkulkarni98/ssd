@@ -11,8 +11,8 @@ def model_init(model_name):
     As in the paper, we use a VGG-16 pretrained on the ImageNet task as the base network.
     There's one available in PyTorch, see https://pytorch.org/docs/stable/torchvision/models.html#torchvision.models.vgg16 
     '''
-    #weight_file_path = '/content/ssd/vgg16-397923af.pth'
-    weight_file_path = '/content/ssd/CP_epoch1.pth'
+    weight_file_path = '/content/ssd/vgg16-397923af.pth'
+    #weight_file_path = '/content/ssd/CP_epoch1.pth'
 
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
   print('Loading model')
@@ -136,6 +136,11 @@ def detect(image_folder, min_score, max_overlap, top_k, suppress=None):
 
 if __name__ == '__main__':
 
+    # hyperparameters
+    min_score=0.01
+    max_overlap=0.45
+    top_k=200
+
     label_map, rev_label_map, label_color_map = label_map_fn('/content/data/output.json')
 
     n_classes = len(label_map)  # number of different types of objects
@@ -146,5 +151,5 @@ if __name__ == '__main__':
 
     image_folder = '/content/data/images'
 
-    annotated_images, results = detect(image_folder, min_score=0.2, max_overlap=0.5, top_k=5)
+    annotated_images, results = detect(image_folder, min_score, max_overlap, top_k)
     print(annotated_images, results)
