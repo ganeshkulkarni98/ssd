@@ -25,11 +25,11 @@ class COCODataset(Dataset):
         self.image_folder_path = image_folder_path
         self.json_file_path = json_file_path
         self.keep_difficult = keep_difficult
+        self.imgs = list()
 
-        #self.image_folder = os.path.join(self.data_folder, 'images')
-        self.imgs = list(sorted(os.listdir(self.image_folder_path)))
         self.anno = json.load(open(self.json_file_path))
         self.annotation = self.anno["annotations"]
+        self.images_list()  # function helps to consider images having annotations. rest of images wont be considered 
 
     def __getitem__(self, i):
         # Read image
@@ -98,19 +98,20 @@ class COCODataset(Dataset):
         :param batch: an iterable of N sets from __getitem__()
         :return: a tensor of images, lists of varying-size tensors of bounding boxes, labels, and difficulties
         """
-
-        # images = list()
-        # boxes = list()
-        # labels = list()
-        # difficulties = list()
-
-        # for b in batch:
-        #     images.append(b[0])
-        #     boxes.append(b[1])
-        #     labels.append(b[2])
-        #     difficulties.append(b[3])
-
-        # images = torch.stack(images, dim=0)
-
-        # return images, boxes, labels, difficulties  # tensor (N, 3, 300, 300), 3 lists of N tensors each
         return tuple(zip(*batch))
+    
+    def images_list(self):
+        """
+        IF annotations of images are missing then images are not considered for train and validation.
+        This function use to find images which has annotations and consider those for process 
+
+        """
+        imageid = []
+        for i in self.annotation:
+          imageid.append(i['image_id'])
+        [self.imgs.append(x) for x in imageid if x not in self.imgs]
+        for i in self.imgs:
+          for j in self.anno['images']:
+            if j['id'] == i:
+              self.imgs[self.imgs.index(i)] = self.anno['images'][self.anno['images'].index(j)]['file_name']
+              break
