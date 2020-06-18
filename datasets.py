@@ -26,10 +26,11 @@ class COCODataset(Dataset):
         self.json_file_path = json_file_path
         self.keep_difficult = keep_difficult
         self.imgs = list()
+        self.img_ids = list()
 
         self.anno = json.load(open(self.json_file_path))
         self.annotation = self.anno["annotations"]
-        self.images_list()  # function helps to consider images having annotations. rest of images wont be considered 
+        self.images_list()  # function helps to consider images having annotations. rest of images wont be considered
 
     def __getitem__(self, i):
         # Read image
@@ -47,7 +48,7 @@ class COCODataset(Dataset):
         iscrowd = []
 
         for j in range (0,len(self.annotation)):
-          if self.annotation[j]["image_id"] == i :
+          if self.annotation[j]["image_id"] == self.img_ids[i] :
 
             self.annotation[j]["bbox"][2] = self.annotation[j]["bbox"][0] + self.annotation[j]["bbox"][2]
             self.annotation[j]["bbox"][3] = self.annotation[j]["bbox"][1] + self.annotation[j]["bbox"][3]
@@ -77,7 +78,7 @@ class COCODataset(Dataset):
 
         target["boxes"] = boxes
         target["labels"] = labels
-        target["image_id"] = torch.as_tensor(i, dtype=torch.int64)
+        target["image_id"] = torch.as_tensor(self.img_ids[i], dtype=torch.int64)
         target["area"] = area
         target["iscrowd"] = iscrowd 
         target["difficulties"] = difficulties
@@ -110,6 +111,7 @@ class COCODataset(Dataset):
         for i in self.annotation:
           imageid.append(i['image_id'])
         [self.imgs.append(x) for x in imageid if x not in self.imgs]
+        self.img_ids = self.imgs.copy()
         for i in self.imgs:
           for j in self.anno['images']:
             if j['id'] == i:
