@@ -298,10 +298,10 @@ if __name__ == '__main__':
 
     # Learning parameters
     checkpoint = None  # path to model checkpoint, None if none
-    batch_size = 4  # batch size
+    batch_size = 32  # batch size
     iterations = 120000  # number of iterations to train
     workers = 4  # number of workers for loading data in the DataLoader
-    print_freq = 2  # print training status every __ batches
+    print_freq = 8  # print training status every __ batches
     lr = 1e-3  # learning rate
     decay_lr_at = [80000, 100000]  # decay learning rate after these many iterations
     decay_lr_to = 0.1  # decay learning rate to this fraction of the existing learning rate
@@ -319,11 +319,11 @@ if __name__ == '__main__':
 
     model_name = 'SSD'
 
-    train_json_file = '/content/train_coco_dataset.json' 
-    train_images_folder = '/content/train_images'
+    train_json_file = '/content/data/train_coco_dataset.json' 
+    train_images_folder = '/content/data/train_images'
 
-    test_json_file = '/content/test_coco_dataset.json'
-    test_images_folder = '/content/test_images'
+    val_json_file = '/content/data/val_coco_dataset.json'
+    val_images_folder = '/content/data/val_images'
 
     label_map, rev_label_map, label_color_map = label_map_fn(train_json_file)
 
@@ -334,7 +334,7 @@ if __name__ == '__main__':
     # Load validation image folder and corresponding json file to validation dataset 
 
     train_dataset = COCODataset(train_images_folder, train_json_file, split = 'train' , keep_difficult=keep_difficult)
-    validation_dataset = COCODataset(test_images_folder, test_json_file, split = 'test' , keep_difficult=keep_difficult)
+    validation_dataset = COCODataset(val_images_folder, val_json_file, split = 'test' , keep_difficult=keep_difficult)
 
     # run main function
     main()
