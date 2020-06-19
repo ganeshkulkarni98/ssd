@@ -103,10 +103,12 @@ def detect(image_folder, min_score, max_overlap, top_k, suppress=None):
           # Suppress specific classes, if needed
           for i in range(det_boxes.size(0)):
               objects = {}
-              objects['x_min'] = det_boxes[i][0]
-              objects['y_min'] = det_boxes[i][1]
-              objects['x_max'] = det_boxes[i][2]
-              objects['y_max'] = det_boxes[i][3]
+#               objects['x_min'] = det_boxes[i][0]
+#               objects['y_min'] = det_boxes[i][1]
+#               objects['x_max'] = det_boxes[i][2]
+#               objects['y_max'] = det_boxes[i][3]
+              objects['xy_top_left'] = (det_boxes[i][0], det_boxes[i][3])
+              objects['xy_bot_right'] = (det_boxes[i][2], det_boxes[i][1])
               objects['conf_level'] = det_scores[0][i]
               objects['label']= det_labels[i]
               if suppress is not None:
