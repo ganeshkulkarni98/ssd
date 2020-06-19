@@ -17,8 +17,9 @@ def model_init(model_name):
     As in the paper, we use a VGG-16 pretrained on the ImageNet task as the base network.
     There's one available in PyTorch, see https://pytorch.org/docs/stable/torchvision/models.html#torchvision.models.vgg16 
     '''
-    weight_file_path = '/content/ssd/vgg16-397923af.pth'
+    #weight_file_path = '/content/ssd/vgg16-397923af.pth'
     #weight_file_path = '/content/ssd/CP_epoch1.pth'
+    weight_file_path = '/content/ssd/SSD300_pretrained_weight.pth'
 
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
   print('Loading model')
@@ -149,21 +150,26 @@ if __name__ == '__main__':
     workers = 4
     print_freq =1
 
-    min_score=0.01
+    min_score=0.8
     max_overlap=0.45
-    top_k=200
+    top_k=5
 
-    label_map, rev_label_map, label_color_map = label_map_fn('/content/data/output.json')
+    model_name = 'SSD'
+
+    test_json_file = '/content/test_coco_dataset.json'
+    test_images_folder = '/content/test_images'
+
+    label_map, rev_label_map, label_color_map = label_map_fn(train_json_file)
 
     n_classes = len(label_map)  # number of different types of objects
 
-    model, device = model_init('SSD')
+    model, device = model_init(model_name)
     model = model.to(device)
     # Switch to eval mode
     model.eval()
 
     # Load test image folder with corresponding coco json file to test_dataset
-    test_dataset = COCODataset('/content/data/images', '/content/data/output.json' , split = 'test' , keep_difficult=keep_difficult)                             
+    test_dataset = COCODataset(test_images_folder, test_json_file, split = 'test' , keep_difficult=keep_difficult)                             
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False,
                                               collate_fn=test_dataset.collate_fn, num_workers=workers, pin_memory=True)
 
