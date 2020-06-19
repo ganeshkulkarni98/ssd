@@ -147,10 +147,10 @@ if __name__ == '__main__':
 
     model_name = 'SSD'
 
-    test_json_file = '/content/test_coco_dataset.json'
-    test_images_folder = '/content/test_images'
+    test_json_file = '/content/data/test_coco_dataset.json'
+    test_images_folder = '/content/data/test_images'
 
-    label_map, rev_label_map, label_color_map = label_map_fn(train_json_file)
+    label_map, rev_label_map, label_color_map = label_map_fn(test_json_file)
 
     n_classes = len(label_map)  # number of different types of objects
 
@@ -159,5 +159,5 @@ if __name__ == '__main__':
     # Switch to eval mode
     model.eval()
 
-    annotated_images, results = detect(image_folder, min_score, max_overlap, top_k)
+    annotated_images, results = detect(test_images_folder, min_score, max_overlap, top_k)
     print(annotated_images, results)
