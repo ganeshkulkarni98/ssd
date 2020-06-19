@@ -90,13 +90,15 @@ def main():
         torch.save(model.state_dict(), f'CP_epoch{epoch + 1}.pth')
 
 def model_init(model_name):
+
   if model_name == 'SSD':
     '''
     As in the paper, we use a VGG-16 pretrained on the ImageNet task as the base network.
     There's one available in PyTorch, see https://pytorch.org/docs/stable/torchvision/models.html#torchvision.models.vgg16 
     '''
-    weight_file_path = '/content/ssd/vgg16-397923af.pth'
-    #weight_file_path = '/content/ssd/CP_epoch1.pth'
+    #weight_file_path = '/content/ssd/vgg16-397923af.pth'
+    weight_file_path = '/content/ssd/SSD300_pretrained_weight.pth'
+
 
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
   print('Loading model')
@@ -113,6 +115,7 @@ def model_init(model_name):
     print("Loading pretrained weight file....")
     model.base.load_pretrained_layers(torch.load(weight_file_path))
 
+  model.to(device)
   print('model initialized')
 
   return model, device
@@ -293,7 +296,7 @@ if __name__ == '__main__':
     # Model parameters
     # Not too many here since the SSD300 has a very specific structure
 
-    label_map, rev_label_map, label_color_map = label_map_fn('/content/data/output.json')
+    label_map, rev_label_map, label_color_map = label_map_fn('/content/train_coco_dataset.json')
 
     n_classes = len(label_map)  # number of different types of objects
 
@@ -312,18 +315,26 @@ if __name__ == '__main__':
 
     cudnn.benchmark = True
 
-    min_score=0.01
+    min_score=0.8
     max_overlap=0.45
-    top_k=200
+    top_k=5
 
     epochs = 10
+
+    model_name = 'SSD'
+
+    train_json_file = '/content/train_coco_dataset.json' 
+    train_images_folder = '/content/train_images'
+
+    test_json_file = '/content/test_coco_dataset.json'
+    test_images_folder = '/content/test_images'
 
     # Load train and validation dataset (for sake of example i have used same but use different dataset)
     # Load train image folder and corresponding coco json file to train dataset
     # Load validation image folder and corresponding json file to validation dataset 
 
-    train_dataset = COCODataset('/content/data/images', '/content/data/output.json' , split = 'train' , keep_difficult=keep_difficult)
-    validation_dataset = COCODataset('/content/data/images', '/content/data/output.json' , split = 'test' , keep_difficult=keep_difficult)
+    train_dataset = COCODataset(train_images_folder, train_json_file, split = 'train' , keep_difficult=keep_difficult)
+    validation_dataset = COCODataset(test_images_folder, test_json_file, split = 'test' , keep_difficult=keep_difficult)
 
     # run main function
     main()
