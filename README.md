@@ -1,6 +1,8 @@
 ### Google Colab Link for SSD Implementation : https://colab.research.google.com/drive/1sF1o7DTjjARvInYq1WKxJGpsQ9vdpHFF?usp=sharing
 
-### SSD300 model pretrained weight on Pascal VOC dataset : https://drive.google.com/file/d/14erG4YgA1EepHYjWiE3GGGbPT_y_9bb6/view?usp=sharing
+### SSD300 model pretrained weight (Trained on Pascal VOC dataset) : https://drive.google.com/file/d/14erG4YgA1EepHYjWiE3GGGbPT_y_9bb6/view?usp=sharing
+
+### VGG16 (Backbone) pretrained weight (Trained on ImageNet Dataset) : https://download.pytorch.org/models/vgg16-397923af.pth 
 
 This is a **[PyTorch](https://pytorch.org) Tutorial to Object Detection**.
 
