@@ -296,10 +296,6 @@ if __name__ == '__main__':
     # Model parameters
     # Not too many here since the SSD300 has a very specific structure
 
-    label_map, rev_label_map, label_color_map = label_map_fn('/content/train_coco_dataset.json')
-
-    n_classes = len(label_map)  # number of different types of objects
-
     # Learning parameters
     checkpoint = None  # path to model checkpoint, None if none
     batch_size = 4  # batch size
@@ -328,6 +324,10 @@ if __name__ == '__main__':
 
     test_json_file = '/content/test_coco_dataset.json'
     test_images_folder = '/content/test_images'
+
+    label_map, rev_label_map, label_color_map = label_map_fn(train_json_file)
+
+    n_classes = len(label_map)  # number of different types of objects
 
     # Load train and validation dataset (for sake of example i have used same but use different dataset)
     # Load train image folder and corresponding coco json file to train dataset
