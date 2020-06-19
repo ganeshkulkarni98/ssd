@@ -146,9 +146,9 @@ if __name__ == '__main__':
 
     # Parameters
     keep_difficult = True  # difficult ground truth objects must always be considered in mAP calculation, because these objects DO exist!
-    batch_size = 2
+    batch_size = 16
     workers = 4
-    print_freq =1
+    print_freq =4
 
     min_score=0.8
     max_overlap=0.45
@@ -156,10 +156,10 @@ if __name__ == '__main__':
 
     model_name = 'SSD'
 
-    test_json_file = '/content/test_coco_dataset.json'
-    test_images_folder = '/content/test_images'
+    test_json_file = '/content/data/test_coco_dataset.json'
+    test_images_folder = '/content/data/test_images'
 
-    label_map, rev_label_map, label_color_map = label_map_fn(train_json_file)
+    label_map, rev_label_map, label_color_map = label_map_fn(test_json_file)
 
     n_classes = len(label_map)  # number of different types of objects
 
