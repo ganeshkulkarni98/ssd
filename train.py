@@ -82,10 +82,10 @@ def main():
         # Save checkpoint
         save_checkpoint(epoch, model, optimizer)
 
-        # save best checkpoint, having best mean average precision
+        # save best model weight file, having best mean average precision
         if prev_mAP < mAP:
           prev_mAP = mAP
-          save_best_checkpoint(epoch, model, optimizer)
+          torch.save(model.state_dict(), 'best_model.pth')
 
         torch.save(model.state_dict(), f'CP_epoch{epoch + 1}.pth')
 
