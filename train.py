@@ -192,6 +192,9 @@ def evaluate(test_loader, model, device):
     :param test_loader: DataLoader for test data
     :param model: model
     """
+    # Switch to eval mode
+    model.eval()
+    
     n_threads = torch.get_num_threads()
     torch.set_num_threads(1)
     cpu_device = torch.device("cpu")
