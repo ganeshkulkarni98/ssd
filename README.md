@@ -1,8 +1,8 @@
 ## Google Colab Notebook :
 
-# •	SSD300 on Pascal VOC Dataset : https://colab.research.google.com/drive/1sF1o7DTjjARvInYq1WKxJGpsQ9vdpHFF?usp=sharing
+### •	SSD300 on Pascal VOC Dataset : https://colab.research.google.com/drive/1sF1o7DTjjARvInYq1WKxJGpsQ9vdpHFF?usp=sharing
 
-# •	SSD300 on Fruit dataset (Custom Dataset) : https://colab.research.google.com/drive/1afTlRSnUAqRFf3JdNTp1pEd0e0EJuOxz?usp=sharing
+### •	SSD300 on Fruit dataset (Custom Dataset) : https://colab.research.google.com/drive/1afTlRSnUAqRFf3JdNTp1pEd0e0EJuOxz?usp=sharing
 
 
 ### SSD300 model pretrained weight (Trained on Pascal VOC dataset) : https://drive.google.com/file/d/14erG4YgA1EepHYjWiE3GGGbPT_y_9bb6/view?usp=sharing
