@@ -1,14 +1,3 @@
-## Google Colab Notebook :
-
-### •	SSD300 on Pascal VOC Dataset : https://colab.research.google.com/drive/1sF1o7DTjjARvInYq1WKxJGpsQ9vdpHFF?usp=sharing
-
-### •	SSD300 on Fruit dataset (Custom Dataset) : https://colab.research.google.com/drive/1afTlRSnUAqRFf3JdNTp1pEd0e0EJuOxz?usp=sharing
-
-
-### SSD300 model pretrained weight (Trained on Pascal VOC dataset) : https://drive.google.com/file/d/14erG4YgA1EepHYjWiE3GGGbPT_y_9bb6/view?usp=sharing
-
-### VGG16 (Backbone) pretrained weight (Trained on ImageNet Dataset) : https://download.pytorch.org/models/vgg16-397923af.pth 
-
 This is a **[PyTorch](https://pytorch.org) Tutorial to Object Detection**.
 
 This is the third in [a series of tutorials](https://github.com/sgrvinod/Deep-Tutorials-for-PyTorch) I'm writing about _implementing_ cool models on your own with the amazing PyTorch library.
